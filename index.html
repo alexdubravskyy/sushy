@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Календарь приёма лекарств</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Штамп-карта суши-бара: рисовая бумага, нори и киноварь печати. Одна колонка: билет со счётом, календарь по неделям, награда внизу. */
+  --paper:#ECEFE8;
+  --surface:#FAFBF7;
+  --ink:#17201C;
+  --muted:#5C6861;
+  --stamp:#C3352A;
+  --nori:#1E3128;
+  --band-ink:#EEF1EA;
+  --on-stamp:#FFFFFF;
+  --line:color-mix(in srgb, var(--ink) 14%, transparent);
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1411;--surface:#161F1A;--ink:#E5EAE2;--muted:#97A39C;--stamp:#FF6352;--nori:#1C2D24;--band-ink:#E5EAE2;--on-stamp:#1A0B09;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1411;--surface:#161F1A;--ink:#E5EAE2;--muted:#97A39C;--stamp:#FF6352;--nori:#1C2D24;--band-ink:#E5EAE2;--on-stamp:#1A0B09;color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+main{max-width:680px;margin:0 auto;padding:20px 16px 56px;display:grid;gap:18px}
+h1,h2{text-wrap:balance;margin:0}
+p{margin:0}
+.eyebrow{font:600 12px/1.3 var(--body);letter-spacing:.12em;text-transform:uppercase;opacity:.78}
+
+.ticket{display:grid}
+.band{position:relative;background:var(--nori);color:var(--band-ink);border-radius:22px 22px 4px 4px;padding:26px 24px 36px;overflow:hidden}
+.band::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;background:radial-gradient(circle at 10px 12px,var(--paper) 6px,transparent 6.5px) 0 0/20px 12px repeat-x}
+.band-text{padding-right:100px}
+.band h1{font:800 clamp(26px,6.2vw,40px)/1.1 var(--display);letter-spacing:-.01em;margin:10px 0}
+.band .range{font:500 15px/1.4 var(--body);opacity:.85}
+.seal{position:absolute;right:20px;top:20px;width:84px;height:84px;border-radius:50%;border:3px solid var(--stamp);color:var(--stamp);display:grid;place-items:center;transform:rotate(-12deg);font:700 24px/1 "Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","Noto Serif JP",serif;box-shadow:inset 0 0 0 3px var(--nori),inset 0 0 0 5px var(--stamp);writing-mode:vertical-rl;letter-spacing:.08em}
+
+.summary{background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:4px 4px 22px 22px;padding:22px 24px 24px;display:grid;grid-template-columns:auto 1fr;gap:16px 22px;align-items:end}
+.count{display:flex;align-items:baseline;gap:8px}
+.count .big{font:800 68px/.9 var(--display);color:var(--stamp);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.count .of{font:600 17px/1 var(--body);color:var(--muted)}
+.facts{display:grid;gap:2px;padding-bottom:4px}
+.facts strong{font-weight:700}
+.facts .streak{color:var(--muted);font-size:15px}
+.plates{grid-column:1/-1;display:flex;gap:3px}
+.plates span{flex:1 1 0;height:10px;border-radius:999px;background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.plates span.on{background:var(--stamp)}
+.cta{grid-column:1/-1;appearance:none;border:0;border-radius:14px;padding:15px 18px;font:700 16px/1.2 var(--body);background:var(--stamp);color:var(--on-stamp);cursor:pointer;transition:transform .12s ease,filter .12s ease}
+.cta:hover:not(:disabled){filter:brightness(1.07)}
+.cta:active:not(:disabled){transform:translateY(1px)}
+.cta:disabled{background:transparent;cursor:default}
+.cta.done{color:var(--stamp);box-shadow:inset 0 0 0 2px var(--stamp)}
+.cta:disabled:not(.done){color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:20px 18px 18px;display:grid;gap:12px}
+.cal-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 14px}
+.cal-head h2{font:700 18px/1.2 var(--display)}
+.cal-head p{color:var(--muted);font-size:14px}
+.wd,.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wd span{text-align:center;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:2px 0}
+.wd span:nth-child(n+6){color:var(--stamp)}
+.cell{position:relative;aspect-ratio:1/1;display:grid;place-items:center;border-radius:12px;font:600 15px/1 var(--body);font-variant-numeric:tabular-nums;color:var(--ink);padding:0;min-width:0}
+button.cell{appearance:none;border:1px solid var(--line);background:var(--paper);cursor:pointer;transition:background .15s ease}
+button.cell:hover:not(:disabled){background:color-mix(in srgb,var(--stamp) 9%,var(--paper))}
+button.cell:disabled{cursor:default}
+.cell.out{color:color-mix(in srgb,var(--muted) 45%,transparent);font-weight:500}
+.cell.future{border:1.5px dashed color-mix(in srgb,var(--ink) 22%,transparent);color:var(--muted)}
+.cell.missed{background:repeating-linear-gradient(135deg,var(--paper) 0 5px,color-mix(in srgb,var(--ink) 6%,var(--paper)) 5px 6px);color:var(--muted)}
+.cell.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.cell .mo{position:absolute;top:4px;left:5px;font:700 9px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cell.stamped{background:var(--surface)}
+.stamp{position:absolute;inset:11%;border-radius:50%;display:grid;place-items:center;color:var(--stamp);border:2px solid var(--stamp);box-shadow:inset 0 0 0 2px var(--surface),inset 0 0 0 3.5px var(--stamp);transform:rotate(var(--a,0deg));font:800 clamp(12px,3.4vw,16px)/1 var(--display);background:color-mix(in srgb,var(--stamp) 7%,transparent)}
+.just .stamp{animation:thump .42s cubic-bezier(.2,.8,.3,1.25) both}
+@keyframes thump{0%{transform:rotate(var(--a,0deg)) scale(1.7);opacity:0}55%{transform:rotate(var(--a,0deg)) scale(.9);opacity:1}100%{transform:rotate(var(--a,0deg)) scale(1);opacity:1}}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;list-style:none;margin:2px 0 0;padding:0;font-size:13px;color:var(--muted)}
+.legend li{display:flex;align-items:center;gap:7px}
+.sw{width:16px;height:16px;border-radius:5px;flex:none}
+.sw.st{border-radius:50%;border:2px solid var(--stamp);box-shadow:inset 0 0 0 1.5px var(--surface),inset 0 0 0 3px var(--stamp)}
+.sw.ms{background:repeating-linear-gradient(135deg,var(--paper) 0 3px,color-mix(in srgb,var(--ink) 16%,var(--paper)) 3px 4px);border:1px solid var(--line)}
+.sw.td{box-shadow:inset 0 0 0 2px var(--ink)}
+.sw.fu{border:1.5px dashed color-mix(in srgb,var(--ink) 30%,transparent)}
+
+.reward{border-radius:22px;padding:22px 24px;display:grid;grid-template-columns:132px 1fr;gap:18px;align-items:center;border:1px solid var(--line);background:var(--surface)}
+.reward .sushi svg{width:100%;height:auto;display:block}
+.reward.locked .sushi{filter:grayscale(1);opacity:.42}
+.reward .rtext{display:grid;gap:4px;justify-items:start}
+.reward h2{font:700 20px/1.2 var(--display);margin:2px 0 4px}
+.reward.open{background:var(--nori);color:var(--band-ink);border-color:transparent}
+.ghost{margin-top:10px;appearance:none;border:0;border-radius:12px;padding:11px 16px;font:700 15px/1 var(--body);background:var(--band-ink);color:var(--nori);cursor:pointer}
+.ghost:disabled{opacity:.5;cursor:default}
+.rounds{font-size:13px;opacity:.75;margin-top:6px}
+.reveal .sushi{animation:pop .7s cubic-bezier(.2,.8,.3,1.3) both}
+@keyframes pop{0%{transform:scale(.6) rotate(-8deg);opacity:0}100%{transform:none;opacity:1}}
+
+.settings{display:grid;gap:8px;padding:4px 6px;color:var(--muted);font-size:14px}
+.settings label{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:var(--ink);font-weight:500}
+.settings input[type="date"]{font:500 15px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.status{min-height:1.4em}
+.status.bad{color:var(--stamp);font-weight:500}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--stamp) 65%,transparent);outline-offset:2px}
+@media (max-width:440px){
+  .summary{grid-template-columns:1fr}
+  .count .big{font-size:58px}
+  .band-text{padding-right:70px}
+  .seal{width:64px;height:64px;font-size:19px;right:16px;top:18px}
+  .reward{grid-template-columns:1fr;justify-items:start}
+  .reward .sushi{width:120px}
+  .cal{padding:16px 12px 14px}
+  .wd,.grid{gap:4px}
+  .cell{border-radius:10px;font-size:14px}
+  .cell.stamped .mo{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(function () {
+  "use strict";
+
+  // ===== НАСТРОЙКА =====
+  // Вставьте между кавычками адрес веб-приложения Google Apps Script (заканчивается на /exec).
+  // Пока строка пустая, отметки сохраняются только в текущем браузере.
+  var API_URL = "https://script.google.com/macros/s/AKfycbzFAFAi1SDIN3MdWfdnUGekx1I3MrwibJGdChjGTFbuM9aw0Q9cjyolg0tPfb-CfUsCEA/exec";
+  // =====================
+
+  var GOAL = 30;
+  var DEFAULT_START = "2026-11-06";
+  var CACHE_KEY = "med-sushi-calendar-v2";
+  var POLL_MS = 45000;
+  var MONTHS_GEN = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  var MONTHS_SHORT = ["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+  var WD = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  var DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  var SUSHI_SVG = '<svg viewBox="0 0 140 90" role="img" aria-label="Суши">' +
+    '<defs><clipPath id="fish-clip"><path d="M14 47 C 20 21, 120 17, 128 40 C 131 51, 118 55, 104 53 L 30 55 C 17 55, 11 53, 14 47 Z"/></clipPath></defs>' +
+    '<ellipse cx="70" cy="80" rx="56" ry="6" fill="#000" opacity=".12"/>' +
+    '<rect x="22" y="40" width="96" height="36" rx="18" fill="#FBF8F0" stroke="#E2DACA" stroke-width="2"/>' +
+    '<path d="M14 47 C 20 21, 120 17, 128 40 C 131 51, 118 55, 104 53 L 30 55 C 17 55, 11 53, 14 47 Z" fill="#F08A5D"/>' +
+    '<g clip-path="url(#fish-clip)" stroke="#FFD4BE" stroke-width="5" stroke-linecap="round" opacity=".9">' +
+    '<path d="M30 22 L 44 58"/><path d="M52 18 L 66 58"/><path d="M84 18 L 96 58"/><path d="M106 20 L 116 56"/></g>' +
+    '<rect x="62" y="18" width="16" height="60" rx="2" fill="#2A3D32" stroke="#5E7A68" stroke-width="1.5"/>' +
+    '</svg>';
+
+  // ---------- даты и слова ----------
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function parse(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  function todayIso() { return iso(new Date()); }
+  function weekday(s) { return (parse(s).getDay() + 6) % 7; }
+  function fmtDay(s, withYear) {
+    var d = parse(s);
+    return d.getDate() + " " + MONTHS_GEN[d.getMonth()] + (withYear ? " " + d.getFullYear() : "");
+  }
+  function clock() { var d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function plural(n, f) {
+    var a = n % 10, b = n % 100;
+    if (a === 1 && b !== 11) return f[0];
+    if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return f[1];
+    return f[2];
+  }
+  function leftWord(n) { return (n % 10 === 1 && n % 100 !== 11) ? "Остался" : "Осталось"; }
+  function days(n) { return n + " " + plural(n, ["день", "дня", "дней"]); }
+  function angle(s) {
+    var h = 7;
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return (Math.abs(h) % 29) - 14;
+  }
+
+  // ---------- состояние ----------
+  function normalize(s) {
+    s = (s && typeof s === "object") ? s : {};
+    var done = Array.isArray(s.done) ? s.done.filter(function (x) { return typeof x === "string" && DATE_RE.test(x); }) : [];
+    done = Array.from(new Set(done)).sort();
+    return {
+      start: (typeof s.start === "string" && DATE_RE.test(s.start)) ? s.start : DEFAULT_START,
+      done: done,
+      rounds: (typeof s.rounds === "number" && s.rounds >= 0) ? Math.floor(s.rounds) : 0,
+      updatedAt: (typeof s.updatedAt === "number") ? s.updatedAt : 0
+    };
+  }
+  function clone(s) { return JSON.parse(JSON.stringify(s)); }
+  function readCache() {
+    try { var raw = localStorage.getItem(CACHE_KEY); return raw ? normalize(JSON.parse(raw)) : null; }
+    catch (e) { return null; }
+  }
+  function writeCache(s) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(s)); } catch (e) {} }
+
+  // Та же логика, что и в скрипте Google: применяем действие к состоянию.
+  function applyOp(s, op) {
+    if (op.op === "mark") {
+      var done = s.done.filter(function (d) { return d !== op.day; });
+      if (op.on) done.push(op.day);
+      s.done = done.sort();
+    } else if (op.op === "start") {
+      s.start = op.start;
+    } else if (op.op === "round") {
+      if (op.expectRounds === s.rounds) { s.start = op.start; s.done = []; s.rounds += 1; }
+    }
+    s.updatedAt = Date.now();
+  }
+
+  var shared = API_URL.trim() !== "";
+  var state = readCache() || normalize(null);
+  var serverState = clone(state);
+  var loaded = !shared;          // получили ли данные с сервера хотя бы раз
+  var pending = 0;
+  var chain = Promise.resolve();
+  var statusText = shared ? "Загружаю общие отметки…" : "";
+  var statusBad = false;
+  var justStamped = null;
+  var justUnlocked = false;
+
+  // ---------- связь с хранилищем ----------
+  function api(body) {
+    var url = API_URL.trim();
+    var opts;
+    if (body) {
+      // text/plain не требует предварительного CORS-запроса
+      opts = { method: "POST", body: JSON.stringify(body) };
+    } else {
+      url += (url.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+      opts = { method: "GET" };
+    }
+    return fetch(url, opts).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function (j) {
+      if (!j || !j.ok || !j.state) throw new Error((j && j.error) || "bad_response");
+      return normalize(j.state);
+    });
+  }
+
+  function setStatus(txt, bad) {
+    statusText = txt;
+    statusBad = !!bad;
+    var el = document.getElementById("save-status");
+    if (el) { el.textContent = txt; el.className = "status" + (bad ? " bad" : ""); }
+  }
+
+  function refresh() {
+    if (!shared || pending > 0) return;
+    api(null).then(function (s) {
+      if (pending > 0) return;
+      var changed = !loaded || s.updatedAt !== serverState.updatedAt;
+      loaded = true;
+      serverState = s;
+      state = clone(s);
+      writeCache(s);
+      if (changed) render();
+      setStatus("Синхронизировано в " + clock());
+    }).catch(function () {
+      setStatus(loaded
+        ? "Нет связи с хранилищем. Показаны последние загруженные отметки."
+        : "Не удалось загрузить общие отметки. Проверьте интернет и адрес API_URL в файле.", true);
+    });
+  }
+
+  function send(op) {
+    pending++;
+    setStatus("Сохраняю…");
+    chain = chain.then(function () {
+      return api(op);
+    }).then(function (s) {
+      pending--;
+      serverState = s;
+      writeCache(s);
+      if (pending === 0) {
+        state = clone(s);
+        render();
+        setStatus("Сохранено в " + clock());
+      }
+    }, function () {
+      pending--;
+      if (pending === 0) {
+        state = clone(serverState);
+        render();
+      }
+      setStatus("Отметка не сохранилась: нет связи с хранилищем. Проверьте интернет и попробуйте ещё раз.", true);
+    });
+  }
+
+  // ---------- действия ----------
+  function derive(t) {
+    var done = state.done.filter(function (d) { return d >= state.start && d <= t; });
+    var set = new Set(done);
+    var count = done.length;
+    var remaining = Math.max(0, GOAL - count);
+    var streak = 0;
+    var cur = set.has(t) ? t : addDays(t, -1);
+    while (set.has(cur)) { streak++; cur = addDays(cur, -1); }
+    var end = addDays(state.start, GOAL - 1);
+    var earliest;
+    if (remaining === 0) {
+      earliest = done[done.length - 1];
+    } else {
+      var base = state.start > t ? state.start : t;
+      earliest = addDays(base, set.has(base) ? remaining : remaining - 1);
+    }
+    if (earliest > end) end = earliest;
+    return { t: t, done: done, set: set, count: count, remaining: remaining, streak: streak, start: state.start, end: end };
+  }
+
+  function act(op) {
+    if (shared && !loaded) return;
+    var t = todayIso();
+    var before = derive(t).count;
+    applyOp(state, op);
+    if (before < GOAL && derive(t).count >= GOAL) justUnlocked = true;
+    render();
+    if (shared) send(op);
+    else writeCache(state);
+  }
+
+  function toggle(d) {
+    var t = todayIso();
+    if (d > t || d < state.start) return;
+    var on = state.done.indexOf(d) < 0;
+    if (on) justStamped = d;
+    act({ op: "mark", day: d, on: on });
+  }
+
+  function markToday() {
+    var t = todayIso();
+    if (t < state.start || state.done.indexOf(t) >= 0) return;
+    justStamped = t;
+    act({ op: "mark", day: t, on: true });
+  }
+
+  function newRound() {
+    var t = todayIso();
+    var D = derive(t);
+    var last = D.done[D.done.length - 1];
+    var ns = (last && last >= t) ? addDays(last, 1) : t;
+    act({ op: "round", start: ns, expectRounds: state.rounds });
+  }
+
+  function setStart(v) {
+    if (!DATE_RE.test(v || "") || v === state.start) return;
+    act({ op: "start", start: v });
+  }
+
+  // ---------- отрисовка ----------
+  function render() {
+    var app = document.getElementById("app");
+    var ae = document.activeElement;
+    var focusDay = ae && ae.getAttribute && ae.getAttribute("data-day");
+    var focusId = ae && ae !== document.body ? ae.id : "";
+
+    var t = todayIso();
+    var D = derive(t);
+    var unlocked = D.count >= GOAL;
+    var withYear = parse(D.start).getFullYear() !== parse(D.end).getFullYear();
+    var rangeText = fmtDay(D.start, withYear) + " – " + fmtDay(D.end, withYear);
+    var locked = shared && !loaded;
+    var dis = locked ? " disabled" : "";
+
+    var cta;
+    if (t < D.start) cta = '<button type="button" id="mark-today" class="cta" disabled>Курс начнётся ' + fmtDay(D.start) + "</button>";
+    else if (D.set.has(t)) cta = '<button type="button" id="mark-today" class="cta done" disabled>Сегодня отмечено</button>';
+    else cta = '<button type="button" id="mark-today" class="cta"' + dis + ">Отметить сегодня</button>";
+
+    var streakText;
+    if (D.streak > 0) {
+      streakText = "Серия: " + days(D.streak) + " подряд";
+      if (!D.set.has(t) && t >= D.start && !unlocked) streakText += ". Отметьте сегодня, чтобы не прервать";
+    } else {
+      streakText = t < D.start ? "Первый день курса: " + fmtDay(D.start) : "Серия начнётся с первой отметки";
+    }
+    var factMain = unlocked
+      ? "<strong>Все 30 штампов собраны</strong>"
+      : "<strong>" + leftWord(D.remaining) + " " + days(D.remaining) + "</strong> приёма до суши";
+
+    var plates = "";
+    for (var p = 0; p < GOAL; p++) plates += '<span class="' + (p < D.count ? "on" : "") + '"></span>';
+
+    var wd = WD.map(function (w) { return "<span>" + w + "</span>"; }).join("");
+    var gs = addDays(D.start, -weekday(D.start));
+    var ge = addDays(D.end, 6 - weekday(D.end));
+    var cells = "";
+    for (var d = gs; d <= ge; d = addDays(d, 1)) {
+      var dt = parse(d), num = dt.getDate();
+      var mo = (num === 1 || d === D.start) ? '<span class="mo">' + MONTHS_SHORT[dt.getMonth()] + "</span>" : "";
+      if (d < D.start || d > D.end) {
+        cells += '<div class="cell out" aria-hidden="true">' + num + "</div>";
+      } else if (D.set.has(d)) {
+        cells += '<button type="button" class="cell stamped' + (d === t ? " today" : "") + (d === justStamped ? " just" : "") +
+          '" data-day="' + d + '" aria-pressed="true" aria-label="' + fmtDay(d) + ': принято. Нажмите, чтобы снять отметку"' + dis + ">" +
+          mo + '<span class="stamp" style="--a:' + angle(d) + 'deg">' + num + "</span></button>";
+      } else if (d > t) {
+        cells += '<div class="cell future" role="img" aria-label="' + fmtDay(d) + ': впереди">' + mo + "<span>" + num + "</span></div>";
+      } else {
+        var isToday = d === t;
+        cells += '<button type="button" class="cell ' + (isToday ? "today" : "missed") + '" data-day="' + d +
+          '" aria-pressed="false" aria-label="' + fmtDay(d) + (isToday ? ", сегодня" : "") + ': не отмечено. Нажмите, чтобы отметить"' + dis + ">" +
+          mo + "<span>" + num + "</span></button>";
+      }
+    }
+
+    var reward = '<section class="reward ' + (unlocked ? "open" : "locked") + (justUnlocked ? " reveal" : "") + '" aria-labelledby="reward-h">' +
+      '<div class="sushi">' + SUSHI_SVG + "</div>" +
+      '<div class="rtext"><p class="eyebrow">Награда</p>' +
+      '<h2 id="reward-h">' + (unlocked ? "Суши заслужены!" : "Суши после 30-го штампа") + "</h2>" +
+      "<p>" + (unlocked
+        ? "30 дней приёма позади. Можно заказывать."
+        : "Каждый день приёма — один штамп. " + leftWord(D.remaining) + " " + days(D.remaining) + ".") + "</p>" +
+      (unlocked ? '<button type="button" id="new-round" class="ghost"' + dis + ">Начать новый круг</button>" : "") +
+      (state.rounds > 0 ? '<p class="rounds">Пройдено кругов: ' + state.rounds + "</p>" : "") +
+      "</div></section>";
+
+    var note = shared
+      ? "Общий календарь: отметки видят все, кто открывает эту страницу, и обновляются сами."
+      : "Общее хранилище не подключено, поэтому отметки сохраняются только в этом браузере.";
+
+    app.innerHTML =
+      '<div class="ticket">' +
+        '<header class="band">' +
+          '<div class="seal" aria-hidden="true">寿司</div>' +
+          '<div class="band-text">' +
+            '<p class="eyebrow">Штамп-карта · 30 дней приёма</p>' +
+            "<h1>Тридцать штампов до суши</h1>" +
+            '<p class="range">' + rangeText + "</p>" +
+          "</div>" +
+        "</header>" +
+        '<section class="summary" aria-label="Прогресс">' +
+          '<div class="count"><span class="big">' + D.count + '</span><span class="of">из ' + GOAL + "</span></div>" +
+          '<div class="facts"><p>' + factMain + '</p><p class="streak">' + streakText + "</p></div>" +
+          '<div class="plates" role="progressbar" aria-label="Собрано штампов" aria-valuemin="0" aria-valuemax="' + GOAL + '" aria-valuenow="' + Math.min(D.count, GOAL) + '">' + plates + "</div>" +
+          cta +
+        "</section>" +
+      "</div>" +
+      '<section class="cal" aria-labelledby="cal-h">' +
+        '<div class="cal-head"><h2 id="cal-h">Календарь</h2><p>Нажмите на день, чтобы поставить или снять штамп</p></div>' +
+        '<div class="wd" aria-hidden="true">' + wd + "</div>" +
+        '<div class="grid">' + cells + "</div>" +
+        '<ul class="legend">' +
+          '<li><span class="sw st"></span>Принято</li>' +
+          '<li><span class="sw td"></span>Сегодня</li>' +
+          '<li><span class="sw ms"></span>Пропущено</li>' +
+          '<li><span class="sw fu"></span>Впереди</li>' +
+        "</ul>" +
+      "</section>" +
+      reward +
+      '<footer class="settings">' +
+        '<label for="start-input">Дата начала курса <input type="date" id="start-input" value="' + D.start + '"' + dis + "></label>" +
+        "<p>" + note + "</p>" +
+        '<p id="save-status" class="status" role="status"></p>' +
+      "</footer>";
+
+    if (focusDay) {
+      var el = app.querySelector('[data-day="' + focusDay + '"]');
+      if (el) el.focus();
+    } else if (focusId) {
+      var el2 = document.getElementById(focusId);
+      if (el2) el2.focus();
+    }
+    justStamped = null;
+    justUnlocked = false;
+    setStatus(statusText, statusBad);
+  }
+
+  // ---------- события ----------
+  var app = document.getElementById("app");
+  app.addEventListener("click", function (e) {
+    var cell = e.target.closest("[data-day]");
+    if (cell) { if (!cell.disabled) toggle(cell.getAttribute("data-day")); return; }
+    if (e.target.closest("#mark-today")) { markToday(); return; }
+    if (e.target.closest("#new-round")) { newRound(); }
+  });
+  app.addEventListener("change", function (e) {
+    if (e.target && e.target.id === "start-input") setStart(e.target.value);
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) { render(); refresh(); }
+  });
+
+  // ---------- Telegram Mini App ----------
+  // Скрипт Telegram подгружается только когда страница открыта внутри Telegram.
+  if (/tgWebApp/.test(location.hash + location.search)) {
+    var tgs = document.createElement("script");
+    tgs.src = "https://telegram.org/js/telegram-web-app.js";
+    tgs.onload = function () {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (!tg) return;
+      try {
+        tg.ready();
+        tg.expand();
+        if (tg.colorScheme) document.documentElement.setAttribute("data-theme", tg.colorScheme);
+        if (tg.onEvent) tg.onEvent("themeChanged", function () {
+          document.documentElement.setAttribute("data-theme", tg.colorScheme);
+        });
+      } catch (e) {}
+    };
+    document.head.appendChild(tgs);
+  }
+
+  render();
+  if (shared) {
+    refresh();
+    setInterval(function () { if (!document.hidden) refresh(); }, POLL_MS);
+  }
+})();
+</script>
+</body>
+</html>
